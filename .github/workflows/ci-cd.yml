@@ -1,14 +1,17 @@
-name: CI/CD pagina web en Azure
+name: CI/CD para pagina web en Azure
 
-on: 
-  push: 
+on:
+  push:
 
 jobs:
   ci:
     name: CI
-    runs-on: macos-latest
-    steps:
+    runs-on: ubuntu-latest
+    steps: 
       - name: Descargar repositorio de forma local
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
@@ -17,16 +20,43 @@ jobs:
         run: dotnet restore UsersWeb.sln
 
       - name: Compilar en modo Release
-        run: dotnet build UsersWeb.sln --configuration Release --no--resore
+        run: dotnet build UsersWeb.sln --configuration Release --no-restore
 
       - name: Ejecutar pruebas
-        run: dotnet test UsersWeb.test/UsersWeb.est.csproj --configuration Release --no-build --verbosiy minimal
+        run: dotnet test UsersWeb.Tests/UsersWeb.Tests.csproj --configuration Release --no-build --verbosity minimal
 
-      - name: Publish
-        run: dotne publish UsersWeb/UsersWeb.csproj -c Release -o published
+      - name: Publish 
+        run: dotnet publish UsersWeb/UsersWeb.csproj -c Release -o published
 
-      - name: Exportar Ensamblado para publicar (arefacto)
+      - name: Exportar Ensamblado para publicar (artefacto)
         uses: actions/upload-artifact@v4
-        with:
+        with: 
           name: usersweb-published
           path: published/
+
+  cd:
+    runs-on: ubuntu-latest
+    needs: ci
+    permissions:
+      id-token: write
+      contents: read
+
+    steps: 
+      - name: Descargar ensamblado (artefacto)
+        uses: actions/download-artifact@v4
+        with:
+          name: usersweb-published
+
+      - name: Iniciar sesion en Azure
+        uses: azure/login@v2
+        with:
+          auth-type: SERVICE_PRINCIPAL
+          creds: ${{ secrets.SERVICE_PRINCIPAL }}
+
+      - name: Despliegue de app web en Azure
+        id: desplegar-en-azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'pagina-usuarios-14'
+          slot-name: 'Production'
+          package: .
