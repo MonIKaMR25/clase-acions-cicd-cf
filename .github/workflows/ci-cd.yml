@@ -20,7 +20,7 @@ jobs:
         run: dotnet build UsersWeb.sln --configuration Release --no--resore
 
       - name: Ejecutar pruebas
-        run: dotnet rest UsersWeb.test/UsersWeb.est.csproj --configuration Release --no-build --verbosiy minimal
+        run: dotnet test UsersWeb.test/UsersWeb.est.csproj --configuration Release --no-build --verbosiy minimal
 
       - name: Publish
         run: dotne publish UsersWeb/UsersWeb.csproj -c Release -o published
